@@ -12,15 +12,13 @@ Config = {}
 --Thank you for downloading this script!
 
 --Below you can change multiple options to suit your server needs.
-
 --If you do not want to use any of the pre-configured locations then remove all the necessary logic for them throughout this config file
-
 --Extensive documentation detailing this script and how to confiure it correclty can be found here: https://lusty94-scripts.gitbook.io/documentation/free/first-aid
 
 
 Config.CoreSettings = {
     Debug = {
-        Prints = true, -- sends debug prints to f8 console and txadmin server console
+        Prints = false, -- sends debug prints to f8 console and txadmin server console
     },
      Security = {
         MaxDistance = 15.0, -- max distance permitted for security checks
@@ -35,14 +33,15 @@ Config.CoreSettings = {
     Misc = {
         CashSymbol = '£', -- cash symbol used in your server
     },
-    Notify = { -- notification type - support for qb-core notify okokNotify, mythic_notify, ox_lib notify and qs-notify (experimental not tested)
-        --EDIT CLIENT.LUA & SERVER.LUA TO ADD YOUR OWN NOTIFY SUPPORT
-        Type = 'ox',
+    Notify = { -- notification settings - support for qb-core notify okokNotify, mythic_notify, ox_lib notify, lation_ui and wasabi_notify
+        --EDIT CLIENT/FUNCS.LUA & SERVER/FUNCS.LUA TO ADD YOUR OWN NOTIFY SUPPORT
+        Type = 'qb',
         --use 'qb' for default qb-core notify
         --use 'okok' for okokNotify
         --use 'mythic' for mythic_notify
         --use 'ox' for ox_lib notify
-        --use 'qs' for qs-notify (experimental not tested) (qs-interface)  -- some logic might need adjusting
+        --use 'lation' for lation_ui
+        --use 'wasabi' for wasabi_notify
         --use 'custom' for custom notifications
     },
     Target = {

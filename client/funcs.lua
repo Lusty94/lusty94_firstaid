@@ -19,25 +19,27 @@ end
 
 --sends a client notification
 function CLNotify(msg, type, time, title)
-    if NotifyType == nil then print('^1| Lusty94_FirstAid | DEBUG | ERROR | NotifyType is nil') return end
-    if not msg then msg = 'Notification sent with no message' end
+    if NotifyType == nil then print('^1| Lusty94_FirstAid | DEBUG | ERROR: NotifyType is nil!') return end
+    if not msg then msg = 'Notification sent with no message!' end
     if not type then type = 'success' end
     if not time then time = 5000 end
     if not title then title = 'Notification' end
     if NotifyType == 'qb' then
         QBCore.Functions.Notify(msg,type,time)
-    elseif NotifyType == 'qs' then
-        exports['qs-interface']:AddNotify(msg, title, time, 'fa-solid fa-clipboard')
     elseif NotifyType == 'okok' then
         exports['okokNotify']:Alert(title, msg, time, type, true)
     elseif NotifyType == 'mythic' then
         exports['mythic_notify']:DoHudText(type, msg)
     elseif NotifyType == 'ox' then
-        lib.notify({ title = title, description = msg, position = 'top', type = type, duration = time})
+        lib.notify({title = title, description = msg, position = 'top', type = type, duration = time})
+    elseif NotifyType == 'lation' then
+        exports.lation_ui:notify({title = title, message = msg, type = type, duration = time, icon = 'fa-solid fa-clipboard',})
+    elseif NotifyType == 'wasabi' then
+        exports.wasabi_notify:notify(title, msg, time, type)
     elseif NotifyType == 'custom' then
         --insert your custom notification function here
     else
-        print('^1| Lusty94_FirstAid | DEBUG | ERROR | Unknown Notify Type Set In Config.CoreSettings.Notify.Type | '..tostring(NotifyType))
+        print('^1| Lusty94_FirstAid | DEBUG | ERROR: Unknown Notify Type Set In Config.CoreSettings.Notify.Type | '..tostring(NotifyType))
     end
 end
 
@@ -65,7 +67,7 @@ function ItemImage(img)
 	if InvType == 'ox' then
         if not tostring(img) then CLDebug('^1| Lusty94_FirstAid | DEBUG | ERROR | Item: '.. tostring(img)..' is missing from ox_inventory/data/items.lua!^7') return 'https://files.fivemerr.com/images/54e9ebe7-df76-480c-bbcb-05b1559e2317.png'  end 
 		return 'nui://ox_inventory/web/images/'..img..'.png'
-	elseif InvType == 'qb' or InvType == 'qs' then
+	elseif InvType == 'qb' then
 		if not QBCore.Shared.Items[img] then CLDebug('^1| Lusty94_FirstAid | DEBUG | ERROR | Item: '.. tostring(img)..' is missing from qb-core/shared/items.lua!^7') return 'https://files.fivemerr.com/images/54e9ebe7-df76-480c-bbcb-05b1559e2317.png'  end
 		return 'nui://qb-inventory/html/images/'..QBCore.Shared.Items[img].image
 	elseif InvType == 'custom' then
@@ -82,7 +84,7 @@ function ItemLabel(label)
 		local Items = exports['ox_inventory']:Items()
 		if not Items[label] then CLDebug('^1| Lusty94_FirstAid | DEBUG | ERROR | Item: '.. tostring(label)..' is missing from ox_inventory/data/items.lua!^7') return '❌ The item: '..tostring(label)..' is missing from your items.lua! ' end
 		return Items[label]['label']
-    elseif InvType == 'qb' or InvType == 'qs' then
+    elseif InvType == 'qb' then
 		if not QBCore.Shared.Items[label] then CLDebug('^1| Lusty94_FirstAid | DEBUG | ERROR | Item: '.. tostring(label)..' is missing from qb-core/shared/items.lua!^7') return '❌ The item: '..tostring(label)..' is missing from your items.lua! ' end
 		return QBCore.Shared.Items[label]['label']
 	elseif InvType == 'custom' then
@@ -119,11 +121,11 @@ function reviveMenu(zoneName)
             end,
             onSelect = function()
                 local playerID = GetPlayerServerId(PlayerId())
-                local isDowned = lib.callback.await('lusty_firstaid:server:IsPlayerDowned', false, playerID)
+                local isDowned = lib.callback.await('lusty94_firstaid:server:IsPlayerDowned', false, playerID)
                 if not isDowned then CLNotify(Config.Language.Notifications.NotDownOrDead, 'error') return end
                 setBusy(true)
                 LockInventory(true)
-                TriggerServerEvent('lusty_firstaid:server:revivePlayer', cache.serverId, zoneName, pedCoords, playerCoords)
+                TriggerServerEvent('lusty94_firstaid:server:revivePlayer', cache.serverId, zoneName, pedCoords, playerCoords)
             end,
         }
     end
@@ -138,16 +140,16 @@ function reviveMenu(zoneName)
             end,
             onSelect = function()
                 CLDebug(('^3| Lusty94_FirstAid | DEBUG | INFO | Opening shop for zone %s'):format(zoneName))
-                TriggerEvent('lusty_firstaid:client:OpenShopMenu', zoneName, pedCoords, playerCoords)
+                TriggerEvent('lusty94_firstaid:client:OpenShopMenu', zoneName, pedCoords, playerCoords)
             end,
         }
     end
     lib.registerContext({
-        id = 'lusty_firstaid_main_menu',
+        id = 'lusty94_firstaid_main_menu',
         title = zoneName,
         options = options
     })
-    lib.showContext('lusty_firstaid_main_menu')
+    lib.showContext('lusty94_firstaid_main_menu')
 end
 
 
@@ -157,8 +159,8 @@ function createPeds()
         local coords = data.zone.coords
         local zone = lib.zones.sphere({
             coords = coords.xyz,
-            radius = data.zone.radius,
-            debug = data.zone.debug,
+            radius = data.zone.radius or 5.0,
+            debug = data.zone.debug or false,
             inside = function() inReviveZone = true end,
             onExit = function() inReviveZone = false end
         })
@@ -203,6 +205,10 @@ function createPeds()
                 },
                 distance = data.target.distance or 2.5
             })
+        elseif TargetType == 'custom' then
+            -- Insert your own target logic here
+        else
+            print('| Lusty94_FirstAid | DEBUG | ERROR | Unknown target type set in Config.CoreSettings.Target.Type! '..tostring(TargetType))
         end
         if data.blips and data.blips.enabled then
             local blip = AddBlipForCoord(coords.xyz)
@@ -226,7 +232,7 @@ function stockShop(zoneName)
     CLDebug(('^3| Lusty94_FirstAid | DEBUG | INFO | Admin Stock Menu Opened | %s'):format(zoneName))
     local data = Config.FirstAid[zoneName]
     if not data or not data.inventory then return end
-    local stockData = lib.callback.await('lusty_firstaid:server:GetItemStock', false, zoneName) or {}
+    local stockData = lib.callback.await('lusty94_firstaid:server:GetItemStock', false, zoneName) or {}
     local itemMenu = {}
     for _, item in pairs(data.inventory) do
         local name = item.name
@@ -239,7 +245,7 @@ function stockShop(zoneName)
             arrow = true,
             description = 'Click to update this item\'s stock',
             onSelect = function()
-                TriggerEvent('lusty_firstaid:client:resetStockItem', zoneName, name, stock)
+                TriggerEvent('lusty94_firstaid:client:resetStockItem', zoneName, name, stock)
             end
         })
     end
@@ -254,7 +260,7 @@ end
 
 
 --revive player
-RegisterNetEvent('lusty_firstaid:client:revivePlayer', function(reviveData, zoneName, pedCoords, playerCoords)
+RegisterNetEvent('lusty94_firstaid:client:revivePlayer', function(reviveData, zoneName, pedCoords, playerCoords)
     local playerPed = PlayerPedId()
     local coords = reviveData.coords
     local spawnCoords = reviveData.spawnCoords
@@ -293,18 +299,18 @@ RegisterNetEvent('lusty_firstaid:client:revivePlayer', function(reviveData, zone
     if not ped or not DoesEntityExist(ped) then return end
     local pedCoords = GetEntityCoords(ped)
     local playerCoords = GetEntityCoords(cache.ped)
-    TriggerServerEvent('lusty_firstaid:server:revive', pedCoords, playerCoords)
+    TriggerServerEvent('lusty94_firstaid:server:revive', pedCoords, playerCoords)
     setBusy(false)
     LockInventory(false)
 end)
 
 
 --open shop menu
-RegisterNetEvent('lusty_firstaid:client:OpenShopMenu', function(zoneName, pedCoords, playerCoords)
+RegisterNetEvent('lusty94_firstaid:client:OpenShopMenu', function(zoneName, pedCoords, playerCoords)
     CLDebug(('^3| Lusty94_FirstAid | DEBUG | INFO | Opening Shop Menu | %s'):format(zoneName))
     local reviveData = Config.FirstAid[zoneName]
     if not reviveData or not reviveData.inventory then CLDebug(('^1| Lusty94_FirstAid | DEBUG | ERROR | Missing Inventory Config | %s'):format(zoneName)) return end
-    local stockData = lib.callback.await('lusty_firstaid:server:GetItemStock', false, zoneName)
+    local stockData = lib.callback.await('lusty94_firstaid:server:GetItemStock', false, zoneName)
     if not stockData then CLDebug(('^1| Lusty94_FirstAid | DEBUG | ERROR | No Stock Data | %s'):format(zoneName)) return end
     local menu = {}
     for _, item in pairs(reviveData.inventory) do
@@ -364,7 +370,7 @@ RegisterNetEvent('lusty_firstaid:client:OpenShopMenu', function(zoneName, pedCoo
                         LockInventory(false)
                         return
                     end
-                    TriggerServerEvent('lusty_firstaid:server:BuyItem', zoneName, itemName, quantity, pedCoords, playerCoords, paymentType)
+                    TriggerServerEvent('lusty94_firstaid:server:BuyItem', zoneName, itemName, quantity, pedCoords, playerCoords, paymentType)
                     setBusy(false)
                     LockInventory(false)
                 end
@@ -375,15 +381,15 @@ RegisterNetEvent('lusty_firstaid:client:OpenShopMenu', function(zoneName, pedCoo
         id = 'item_shop_menu',
         title = 'Stolen Medical Supplies',
         options = menu,
-        menu = 'lusty_firstaid_main_menu',
+        menu = 'lusty94_firstaid_main_menu',
     })
     lib.showContext('item_shop_menu')
 end)
 
 
 --admin menu
-RegisterNetEvent('lusty_firstaid:client:openAdminMenu', function()
-    local hasPerms = lib.callback.await('lusty_firstaid:server:checkPerms', false)
+RegisterNetEvent('lusty94_firstaid:client:openAdminMenu', function()
+    local hasPerms = lib.callback.await('lusty94_firstaid:server:checkPerms', false)
     if not hasPerms then return CLNotify(Config.Language.Notifications.NoAccess, 'error') end
     local shopMenu = {}
     for zoneName, data in pairs(Config.FirstAid) do
@@ -407,7 +413,7 @@ end)
 
 
 --reset stock level
-RegisterNetEvent('lusty_firstaid:client:resetStockItem', function(zoneName, itemName, currentStock)
+RegisterNetEvent('lusty94_firstaid:client:resetStockItem', function(zoneName, itemName, currentStock)
     local itemLabel = ItemLabel(itemName) 
     local shopData = Config.FirstAid[zoneName]
     local maxStock
@@ -431,19 +437,19 @@ RegisterNetEvent('lusty_firstaid:client:resetStockItem', function(zoneName, item
     })
     if not input then return end
     local amount = tonumber(input[1])
-    TriggerServerEvent('lusty_firstaid:server:ResetStock', zoneName, itemName, amount)
+    TriggerServerEvent('lusty94_firstaid:server:ResetStock', zoneName, itemName, amount)
     CLDebug(('^3| Lusty94_FirstAid | DEBUG | INFO | Updating Stock Level | %s | %s | %d'):format(itemName, zoneName, amount))
 end)
 
 
---just because quasar doesnt support server side notifys
-RegisterNetEvent('lusty_firstaid:client:notify', function(msg, type, time)
+--cl notify
+RegisterNetEvent('lusty94_firstaid:client:notify', function(msg, type, time)
     CLNotify(msg, type, time)
 end)
 
 
 --toggle status
-RegisterNetEvent('lusty_firstaid:client:toggleStatus', function()
+RegisterNetEvent('lusty94_firstaid:client:toggleStatus', function()
     setBusy(false)
     LockInventory(false)
 end)
@@ -474,6 +480,10 @@ AddEventHandler('onResourceStop', function(resource)
                 exports.ox_target:removeLocalEntity(ped)
             elseif TargetType == 'qb' then
                 exports['qb-target']:RemoveTargetEntity(ped)
+            elseif TargetType == 'custom' then
+                -- Insert your own target logic here
+            else
+                print('| Lusty94_FirstAid | DEBUG | ERROR | Unknown target type set in Config.CoreSettings.Target.Type! '..tostring(TargetType))
             end
             if DoesEntityExist(ped) then DeleteEntity(ped) end
             spawnedPeds = {}

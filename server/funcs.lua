@@ -80,18 +80,20 @@ function SVNotify(src, msg, type, time, title)
     if not title then title = 'Notification' end
     if NotifyType == 'qb' then
         TriggerClientEvent('QBCore:Notify', src, msg, type, time)
-    elseif NotifyType == 'qs' then
-        TriggerClientEvent('lusty_firstaid:client:notify', src, msg, type, time)
     elseif NotifyType == 'okok' then
         TriggerClientEvent('okokNotify:Alert', src, title, msg, time, type, Config.CoreSettings.Notify.Sound)
     elseif NotifyType == 'mythic' then
         TriggerClientEvent('mythic_notify:client:SendAlert', src, { type = type, text = msg, style = { ['background-color'] = '#00FF00', ['color'] = '#FFFFFF' } })
     elseif NotifyType == 'ox' then 
         TriggerClientEvent('ox_lib:notify', src, ({ title = title, description = msg, position = 'top', length = time, type = type, style = 'default'}))
+    elseif NotifyType == 'lation' then 
+         TriggerClientEvent('lusty94_firstaid:client:notify', src, msg, type, time)
+    elseif NotifyType == 'wasabi' then 
+        TriggerClientEvent('wasabi_notify:notify', src, title, msg, time, type)
     elseif NotifyType == 'custom' then
         -- Insert your own notify function here
     else
-        print('^1| Lusty94_FirstAid | DEBUG | ERROR | Unknown notify type: ' .. tostring(NotifyType))
+        print('^1| Lusty94_FirstAid | DEBUG | ERROR | Unknown Notify Type Set In Config.CoreSettings.Notify.Type | '..tostring(NotifyType))
     end
 end
 
@@ -99,23 +101,24 @@ end
 --add item
 function addItem(src, item, amount, slot, info)
     sendLog(src, "Security", ('Giving %sx%s to %s with info %s'):format(item, amount, getCharacterName(src), json.encode(info) or 'N/A'), "warning")
+    SVDebug('^3| Lusty94_FirstAid | DEBUG | Adding '..amount..'x '..item..' to '..getCharacterName(src))
     if InvType == 'qb' then
         local canCarry = exports['qb-inventory']:CanAddItem(src, item, amount, slot, info)
-        if not canCarry then SVNotify(src, Config.Language.Notifications.CantGive, 'error') TriggerClientEvent('lusty_firstaid:client:toggleStatus', src) return end
+        if not canCarry then 
+            SVNotify(src, Config.Language.Notifications.CantGive, 'error')
+            TriggerClientEvent('lusty94_firstaid:client:toggleStatus', src)
+            return
+        end
         exports['qb-inventory']:AddItem(src, item, amount, slot, info)
         TriggerClientEvent('qb-inventory:client:ItemBox', src, QBCore.Shared.Items[item], 'add', amount)
-        SVDebug('^3| Lusty94_FirstAid | DEBUG | Adding '..amount..'x '..item..' to '..getCharacterName(src))
-    elseif InvType == 'qs' then
-        local canCarry = exports['qs-inventory']:CanAddItem(src, item, amount, slot, info)
-        if not canCarry then SVNotify(src, Config.Language.Notifications.CantGive, 'error') TriggerClientEvent('lusty_firstaid:client:toggleStatus', src) return end
-        exports['qs-inventory']:AddItem(src, item, amount, slot, info)
-        TriggerClientEvent('qs-inventory:client:ItemBox', src, QBCore.Shared.Items[item], 'add', amount)
-        SVDebug('^3| Lusty94_FirstAid | DEBUG | Adding '..amount..'x '..item..' to '..getCharacterName(src))
     elseif InvType == 'ox' then
         local canCarry = exports.ox_inventory:CanCarryItem(src, item, amount, info)
-        if not canCarry then SVNotify(src, Config.Language.Notifications.CantGive, 'error') TriggerClientEvent('lusty_firstaid:client:toggleStatus', src) return end
+        if not canCarry then
+            SVNotify(src, Config.Language.Notifications.CantGive, 'error')
+            TriggerClientEvent('lusty94_firstaid:client:toggleStatus', src)
+            return
+        end
         exports.ox_inventory:AddItem(src, item, amount, info)
-        SVDebug('^3| Lusty94_FirstAid | DEBUG | Adding '..amount..'x '..item..' to '..getCharacterName(src))
     elseif InvType == 'custom' then
         --insert your own logic for adding items here
     else
@@ -133,16 +136,7 @@ function removeItem(src, item, amount)
             SVDebug('^3| Lusty94_FirstAid | DEBUG | Removing ' .. amount .. 'x ' .. item .. ' from '..getCharacterName(src))
             return true
         else
-            TriggerClientEvent('lusty_firstaid:client:toggleStatus', src)
-            return false
-        end
-    elseif InvType == 'qs' then
-        if exports['qs-inventory']:RemoveItem(src, item, amount) then
-            TriggerClientEvent('qs-inventory:client:ItemBox', src, QBCore.Shared.Items[item], 'remove', amount)
-            SVDebug('^3| Lusty94_FirstAid | DEBUG | Removing ' .. amount .. 'x ' .. item .. ' from '..getCharacterName(src))
-            return true
-        else
-            TriggerClientEvent('lusty_firstaid:client:toggleStatus', src)
+            TriggerClientEvent('lusty94_firstaid:client:toggleStatus', src)
             return false
         end
     elseif InvType == 'ox' then
@@ -150,7 +144,7 @@ function removeItem(src, item, amount)
             SVDebug('^3| Lusty94_FirstAid | DEBUG | Removing ' .. amount .. 'x ' .. item .. ' from '..getCharacterName(src))
             return true
         else
-            TriggerClientEvent('lusty_firstaid:client:toggleStatus', src)
+            TriggerClientEvent('lusty94_firstaid:client:toggleStatus', src)
             return false
         end
     elseif InvType == 'custom' then
@@ -167,24 +161,23 @@ function removeMoney(src, account, amount)
     if not Player then return false end
     if amount == 0 then return true end
     sendLog(src, "Security", ('Removing %s%s from %s in %s'):format(CashSymbol, amount, getCharacterName(src), account), "warning")
-    if InvType == 'ox' then
-        if exports.ox_inventory:Search(src, 'count', 'money') >= amount then
-            if not removeItem(src, 'money', amount) then return false end
-            SVDebug(('^3| Lusty94_FirstAid | DEBUG | INFO | Removing %s%.2f from %s^7'):format(CashSymbol, amount, getCharacterName(src)))
-            return true
-        else
-            TriggerClientEvent('lusty_firstaid:client:toggleStatus', src)
-            SVDebug('^1| Lusty94_FirstAid | DEBUG | INFO | Player: '..getCharacterName(src)..' has insufficient funds')
-            return false
-        end
-    elseif InvType == 'qb' or InvType == 'qs' then
+    SVDebug(('^3| Lusty94_FirstAid | DEBUG | INFO | Removing %s%.2f from %s^7'):format(CashSymbol, amount, getCharacterName(src)))
+    if InvType == 'qb' then
         if Player.Functions.GetMoney(account) >= amount then
             if Player.Functions.RemoveMoney(account, amount) then
-                SVDebug(('^3| Lusty94_FirstAid | DEBUG | INFO | Removing %s%.2f from %s^7'):format(CashSymbol, amount, getCharacterName(src)))
                 return true
             end
         else
-            TriggerClientEvent('lusty_firstaid:client:toggleStatus', src)
+            TriggerClientEvent('lusty94_firstaid:client:toggleStatus', src)
+            SVDebug('^1| Lusty94_FirstAid | DEBUG | INFO | Player: '..getCharacterName(src)..' has insufficient funds')
+            return false
+        end
+    elseif InvType == 'ox' then
+        if exports.ox_inventory:Search(src, 'count', 'money') >= amount then
+            if not removeItem(src, 'money', amount) then return false end
+            return true
+        else
+            TriggerClientEvent('lusty94_firstaid:client:toggleStatus', src)
             SVDebug('^1| Lusty94_FirstAid | DEBUG | INFO | Player: '..getCharacterName(src)..' has insufficient funds')
             return false
         end
@@ -202,6 +195,7 @@ function IsPlayerNearCoords(src, targetCoords, playerCoords, maxDist, checkName)
     if dist > maxDist then
         print(('^1| Lusty94_FirstAid | DEBUG | WARNING | %s failed distance check (%s) | Distance: %.2f^7'):format(getCharacterName(src), checkName, dist))
         sendLog(src, "Security", ('%s failed distance check (%s) | Distance: %.2f'):format(getCharacterName(src), checkName, dist), "warning")
+        Wait(500)
         if Config.CoreSettings.Security.KickPlayer then DropPlayer(src, 'Potential Exploiting Detected') end
         return false
     end
@@ -225,13 +219,13 @@ end
 
 
 --check perm
-lib.callback.register('lusty_firstaid:server:checkPerms', function(source)
+lib.callback.register('lusty94_firstaid:server:checkPerms', function(source)
     return hasPerms(source)
 end)
 
 
 --check status
-lib.callback.register('lusty_firstaid:server:IsPlayerDowned', function(_, playerId)
+lib.callback.register('lusty94_firstaid:server:IsPlayerDowned', function(_, playerId)
     local Player = QBCore.Functions.GetPlayer(tonumber(playerId))
     if not Player then return false end
     local metadata = Player.PlayerData.metadata or {}
@@ -240,7 +234,7 @@ end)
 
 
 --get stock levels
-lib.callback.register('lusty_firstaid:server:GetItemStock', function(source, zoneName)
+lib.callback.register('lusty94_firstaid:server:GetItemStock', function(source, zoneName)
     local result = MySQL.query.await('SELECT item_name, stock FROM firstaid_stock WHERE zone_name = ?', { zoneName })
     local stockData = {}
     for _, row in ipairs(result) do
@@ -251,14 +245,14 @@ end)
 
 
 --revive
-RegisterNetEvent('lusty_firstaid:server:revivePlayer', function(targetId, zoneName, pedCoords, playerCoords)
+RegisterNetEvent('lusty94_firstaid:server:revivePlayer', function(targetId, zoneName, pedCoords, playerCoords)
     local src = source
     local Player = QBCore.Functions.GetPlayer(src)
     if not Player then return end
     local cid = Player.PlayerData.citizenid
     local reviveData = Config.FirstAid[zoneName]
     if not reviveData then return end
-    if not IsPlayerNearCoords(src, pedCoords, playerCoords, Config.CoreSettings.Security.MaxDistance or 10.0, 'lusty_firstaid:server:revivePlayer') then return end
+    if not IsPlayerNearCoords(src, pedCoords, playerCoords, Config.CoreSettings.Security.MaxDistance or 10.0, 'lusty94_firstaid:server:revivePlayer') then return end
     local cost = reviveData.revive.cost
     if cooldowns[cid] and os.time() < cooldowns[cid] then
         SVNotify(src, Config.Language.Notifications.Cooldown, 'error')
@@ -269,30 +263,30 @@ RegisterNetEvent('lusty_firstaid:server:revivePlayer', function(targetId, zoneNa
         return
     end
     cooldowns[cid] = os.time() + 600
-    TriggerClientEvent('lusty_firstaid:client:revivePlayer', targetId, reviveData.revive, zoneName, pedCoords, playerCoords)
+    TriggerClientEvent('lusty94_firstaid:client:revivePlayer', targetId, reviveData.revive, zoneName, pedCoords, playerCoords)
     SVDebug(('^3| Lusty94_FirstAid | DEBUG | INFO | %s Is Being Revived At %s Cost %s%s'):format(getCharacterName(src), zoneName, CashSymbol, cost))
 end)
 
 
 --revive
-RegisterNetEvent('lusty_firstaid:server:revive', function(pedCoords, playerCoords)
+RegisterNetEvent('lusty94_firstaid:server:revive', function(pedCoords, playerCoords)
     local src = source
     local Player = QBCore.Functions.GetPlayer(src)
     if not Player then return end
-    if not IsPlayerNearCoords(src, pedCoords, playerCoords, Config.CoreSettings.Security.MaxDistance or 10.0, 'lusty_firstaid:server:revivePlayer') then return end
+    if not IsPlayerNearCoords(src, pedCoords, playerCoords, Config.CoreSettings.Security.MaxDistance or 10.0, 'lusty94_firstaid:server:revivePlayer') then return end
     TriggerClientEvent('hospital:client:Revive', src)
     sendLog(src, 'Revive', ('%s paid $%s to be revived at %s'):format(getCharacterName(src), cost, zoneName), 'info')
 end)
 
 
 --buy items
-RegisterNetEvent('lusty_firstaid:server:BuyItem', function(zoneName, itemName, quantity, pedCoords, playerCoords, paymentType)
+RegisterNetEvent('lusty94_firstaid:server:BuyItem', function(zoneName, itemName, quantity, pedCoords, playerCoords, paymentType)
     local src = source
     local Player = QBCore.Functions.GetPlayer(src)
     if not Player then return end
     local reviveData = Config.FirstAid[zoneName]
     if not reviveData or not reviveData.inventory then return end
-    if not IsPlayerNearCoords(src, pedCoords, playerCoords, Config.CoreSettings.Security.MaxDistance or 10.0, 'lusty_firstaid:server:BuyItem') then return end
+    if not IsPlayerNearCoords(src, pedCoords, playerCoords, Config.CoreSettings.Security.MaxDistance or 10.0, 'lusty94_firstaid:server:BuyItem') then return end
     local itemData
     for _, item in pairs(reviveData.inventory) do
         if item.name == itemName then
@@ -323,7 +317,7 @@ end)
 
 
 --reset stock level
-RegisterNetEvent('lusty_firstaid:server:ResetStock', function(zoneName, itemName, amount)
+RegisterNetEvent('lusty94_firstaid:server:ResetStock', function(zoneName, itemName, amount)
     local Player = QBCore.Functions.GetPlayer(source)
     if not Player then return end
     if not zoneName then return end
@@ -373,7 +367,7 @@ lib.addCommand('adminstock', {
         SVNotify(source, Config.Language.Notifications.NoAccess, 'error')
         return
     end
-    TriggerClientEvent('lusty_firstaid:client:openAdminMenu', source)
+    TriggerClientEvent('lusty94_firstaid:client:openAdminMenu', source)
 end)
 
 

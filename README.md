@@ -30,7 +30,6 @@ Add unlimited medical NPCs with individual settings for coordinates, animations,
 - [ox_lib](https://github.com/overextended/ox_lib/releases/)
 - [oxmysql](https://github.com/overextended/oxmysql/releases/)
 - [fm-logs](https://github.com/FiveMerr/fm-logs) (only required if using for logs)
-
 - [qb-target](https://github.com/qbcore-framework/qb-target) or [ox_target](https://github.com/overextended/ox_target/releases/)
 - [qb-inventory](https://github.com/qbcore-framework/qb-inventory) or [ox_inventory](https://github.com/overextended/ox_inventory/releases/) or supported scripts
 
